@@ -10,13 +10,13 @@ module OmniAuth
 
       option :client_options, { login_page_url: 'MUST BE PROVIDED' }
 
-      uid { info[:username] }
+      uid { info[:uid] }
 
       info { raw_user_info }
 
       def request_phase
         slug = session['omniauth.params']['origin'].gsub(/\//,"")
-        redirect authorize_url + "?returnURL=" + callback_url + "?slug=#{slug}"
+        redirect login_page_url + "?redirectURL=" + callback_url + "?slug=#{slug}"
       end
 
       def callback_phase
@@ -38,12 +38,13 @@ module OmniAuth
           email: request.params['email'],
           user_type: request.params['user_type'],
           username: request.params['username'],
+          uid: request.params['username'],
         }
       end
 
       private
 
-      def authorize_url
+      def login_page_url
         options.client_options.login_page_url
       end
 
