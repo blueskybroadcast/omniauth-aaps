@@ -8,6 +8,8 @@ module OmniAuth
     class Aaps < OmniAuth::Strategies::OAuth2
       option :name, 'aaps'
 
+      option :app_options, { app_event_id: nil }
+
       option :client_options, { login_page_url: 'MUST BE PROVIDED' }
 
       uid { info[:uid] }
@@ -20,8 +22,13 @@ module OmniAuth
       end
 
       def callback_phase
+        slug = request.params['slug']
+        account = Account.find_by(slug: slug)
+        @app_event = account.app_events.where(id: options.app_options.app_event_id).first_or_create(activity_type: 'sso')
         self.env['omniauth.auth'] = auth_hash
-        self.env['omniauth.origin'] = '/' + request.params['slug']
+        self.env['omniauth.origin'] = '/' + slug
+        self.env['omniauth.app_event_id'] = @app_event.id
+        finalize_app_event
         call_app!
       end
 
@@ -48,6 +55,19 @@ module OmniAuth
         options.client_options.login_page_url
       end
 
+      def finalize_app_event
+        app_event.update(
+          raw_data: {
+            user_info: {
+              uid: info[:uid],
+              email: info[:email],
+              first_name: info[:first_name],
+              last_name: info[:last_name],
+              user_type: info[:user_type]
+            }
+          }
+        )
+      end
     end
   end
 end
