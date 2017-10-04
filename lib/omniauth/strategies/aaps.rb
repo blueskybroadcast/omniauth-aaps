@@ -17,23 +17,25 @@ module OmniAuth
       info { raw_user_info }
 
       def request_phase
-        slug = session['omniauth.params']['origin'].gsub(/\//,"")
-        redirect login_page_url + "?redirectURL=" + callback_url + "?slug=#{slug}"
+        slug = session['omniauth.params']['origin'].gsub(/\//, '')
+        redirect login_page_url + '?redirectURL=' + callback_url + "?slug=#{slug}"
       end
 
       def callback_phase
         slug = request.params['slug']
         account = Account.find_by(slug: slug)
         @app_event = account.app_events.where(id: options.app_options.app_event_id).first_or_create(activity_type: 'sso')
+
         self.env['omniauth.auth'] = auth_hash
         self.env['omniauth.origin'] = '/' + slug
         self.env['omniauth.app_event_id'] = @app_event.id
+
         finalize_app_event
         call_app!
       end
 
       def auth_hash
-        hash = AuthHash.new(:provider => name, :uid => uid)
+        hash = AuthHash.new(provider: name, uid: uid)
         hash.info = info
         hash
       end
@@ -56,7 +58,7 @@ module OmniAuth
       end
 
       def finalize_app_event
-        app_event.update(
+        @app_event.update(
           raw_data: {
             user_info: {
               uid: info[:uid],
